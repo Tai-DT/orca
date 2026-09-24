@@ -1,5 +1,6 @@
 import type { RuntimeTerminalSend } from '../../../../../../shared/runtime-terminal-contracts'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
+import type { OrchestrationDb } from '../../../../orchestration/db'
 import {
   buildDispatchPreamble,
   dispatchPreambleSendOptions
@@ -22,6 +23,7 @@ type StructuredSession = Awaited<ReturnType<typeof createStructuredWorkerSession
  */
 export async function deliverWorkerDispatchPreamble(args: {
   runtime: OrcaRuntimeService
+  db: OrchestrationDb
   structuredSession: StructuredSession
   terminalHandle: string
   dispatchId: string
@@ -45,10 +47,7 @@ export async function deliverWorkerDispatchPreamble(args: {
     taskId: args.taskId,
     dispatchId: args.dispatchId,
     taskSpec: args.taskSpec,
-    coordinatorHandle: agentVisibleOrchestrationAddress(
-      args.coordinatorHandle,
-      runtime.getOrchestrationDb()
-    ),
+    coordinatorHandle: agentVisibleOrchestrationAddress(args.coordinatorHandle, args.db),
     workerHandle: terminalHandle,
     ...(structuredSession
       ? {
