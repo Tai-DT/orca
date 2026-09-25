@@ -17412,6 +17412,11 @@
   },
   "components": {
     "native-chat": {
+      "contextMenu": {
+        "orchestrationAddressCopied": "Adresse d'orchestration copiée",
+        "orchestrationAddressCopyFailed": "Impossible de copier l'adresse d'orchestration",
+        "copyOrchestrationAddress": "Copier l'adresse d'orchestration"
+      },
       "writeNotice": {
         "notDoneReadHistory": "L'historique de ce chat n'a pas pu être chargé.",
         "notDoneSend": "Votre message n'a pas été envoyé.",
@@ -17800,11 +17805,6 @@
         "notFound": "Fichier introuvable : {{value0}}",
         "unverifiable": "Impossible de vérifier {{value0}} : {{value1}}",
         "unresolved": "Impossible de résoudre {{value0}} dans cet espace de travail"
-      },
-      "contextMenu": {
-        "orchestrationAddressCopied": "Adresse d'orchestration copiée",
-        "orchestrationAddressCopyFailed": "Impossible de copier l'adresse d'orchestration",
-        "copyOrchestrationAddress": "Copier l'adresse d'orchestration"
       },
       "contextUsage": {
         "label": "Contexte : {{used}} tokens sur {{window}}, {{percent}} % utilisés",

@@ -14929,6 +14929,11 @@
   },
   "components": {
     "native-chat": {
+      "contextMenu": {
+        "orchestrationAddressCopied": "Dirección de orquestación copiada",
+        "orchestrationAddressCopyFailed": "No se pudo copiar la dirección de orquestación",
+        "copyOrchestrationAddress": "Copiar dirección de orquestación"
+      },
       "writeNotice": {
         "notDoneReadHistory": "No se pudo cargar el historial de este chat.",
         "notDoneSend": "Su mensaje no se envió.",
@@ -15095,11 +15100,6 @@
         "deny": "Denegar"
       },
       "launchPromptNotDelivered": "No entregado — revisa la terminal",
-      "contextMenu": {
-        "orchestrationAddressCopied": "Dirección de orquestación copiada",
-        "orchestrationAddressCopyFailed": "No se pudo copiar la dirección de orquestación",
-        "copyOrchestrationAddress": "Copiar dirección de orquestación"
-      },
       "fileLinks": {
         "notFound": "No se encontró el archivo: {{value0}}",
         "unverifiable": "No se pudo comprobar {{value0}}: {{value1}}",

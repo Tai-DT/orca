@@ -17348,6 +17348,11 @@
       }
     },
     "native-chat": {
+      "contextMenu": {
+        "orchestrationAddressCopied": "オーケストレーションアドレスをコピーしました",
+        "orchestrationAddressCopyFailed": "オーケストレーションアドレスのコピーに失敗しました",
+        "copyOrchestrationAddress": "オーケストレーションアドレスをコピー"
+      },
       "writeNotice": {
         "notDoneReadHistory": "このチャットの履歴を読み込めませんでした。",
         "notDoneSend": "メッセージは送信されませんでした。",
@@ -17736,11 +17741,6 @@
         "notFound": "ファイルが見つかりません: {{value0}}",
         "unverifiable": "{{value0}} を確認できませんでした: {{value1}}",
         "unresolved": "このワークスペースで {{value0}} を解決できませんでした"
-      },
-      "contextMenu": {
-        "orchestrationAddressCopied": "オーケストレーションアドレスをコピーしました",
-        "orchestrationAddressCopyFailed": "オーケストレーションアドレスのコピーに失敗しました",
-        "copyOrchestrationAddress": "オーケストレーションアドレスをコピー"
       },
       "contextUsage": {
         "label": "コンテキスト {{used}} / {{window}} トークン、{{percent}}% 使用済み",
