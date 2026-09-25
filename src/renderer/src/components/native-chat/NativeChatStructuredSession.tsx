@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { agentSessionPromptQuestions } from '../../../../shared/agent-session-question-answer'
 import { dispatchStructuredAgentSessionComposerCommand } from '../../../../shared/structured-agent-session-composer'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
-import { sessionOrchestrationActor } from '../../../../shared/orchestration-actor'
+import { isOrcaSessionId } from '../../../../shared/orca-session-address'
 import { resolveStructuredSessionOrchestrationAddress } from '../../runtime/structured-session-orchestration-address'
 import type { NativeChatLiveSession } from './use-native-chat-live-session'
 import { NativeChatApprovalCard } from './NativeChatApprovalCard'
@@ -72,7 +72,7 @@ export function NativeChatStructuredSession(
   const composerRef = useRef<NativeChatComposerHandle>(null)
   const resolveOrchestrationAddress = useMemo(
     () =>
-      sessionOrchestrationActor(props.sessionId)
+      isOrcaSessionId(props.sessionId)
         ? () => resolveStructuredSessionOrchestrationAddress(props.target, props.sessionId)
         : undefined,
     [props.sessionId, props.target]

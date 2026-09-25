@@ -4,6 +4,7 @@ import { RuntimeClientError } from '../../runtime-client'
 import { getTerminalHandle } from '../../selectors'
 import { hasStructuredSessionMarker } from '../../../shared/structured-session-marker'
 import { readInjectedAgentSessionId } from '../../../shared/agent-session-caller-env'
+import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-address-prefix'
 import { sessionAddressForHost } from '../../session-caller-flags'
 
 /**
@@ -172,7 +173,7 @@ function getClientErrorMessage(err: unknown): string | undefined {
 /** How check output names its caller: the handle, or `session:<id>`, a structured worker's too. */
 export function orchestrationCallerLabel(handle: string | undefined): string {
   const sessionId = readInjectedAgentSessionId()
-  return handle ?? (sessionId ? `session:${sessionId}` : 'unknown')
+  return handle ?? (sessionId ? `${ORCA_SESSION_ADDRESS_PREFIX}${sessionId}` : 'unknown')
 }
 
 export async function resolveCoordinatorTerminalHandle(
