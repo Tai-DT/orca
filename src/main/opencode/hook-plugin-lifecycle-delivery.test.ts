@@ -823,4 +823,29 @@ describe('OpenCode plugin lifecycle delivery', () => {
     await handler({ event: status('idle') })
     expect(names().at(-1)).toBe('SessionIdle')
   })
+
+  // Why: a tool-raised blocker records Busy only when none is known; taking over the
+  // owner would let the second factory's disposal erase Busy for a turn still running.
+  it('keeps the running factory Busy when another factory saw a tool-raised blocker', async () => {
+    const first = await loadHooks()
+    const second = await loadHooks()
+
+    await first.event({ event: status('busy') })
+    await second.event({
+      event: {
+        type: 'permission.asked',
+        properties: {
+          id: 'permission-1',
+          sessionID: 'root',
+          permission: 'bash',
+          patterns: ['ls'],
+          tool: { messageID: 'message-assistant', callID: 'call-1' }
+        }
+      }
+    })
+    await second.dispose?.()
+
+    expect(names()).toEqual(['SessionBusy', 'PermissionRequest', 'SessionBusy'])
+    await first.dispose?.()
+  })
 })
