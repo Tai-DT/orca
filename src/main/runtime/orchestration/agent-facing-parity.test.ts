@@ -117,7 +117,7 @@ async function renderChatPointer(mailbox: string): Promise<string> {
     // The runtime's wiring of the structured lane.
     getCliCommand: localOrchestrationCliCommand,
     host: {
-      readGateFacts: () => ({ turnRunning: false, awaitingHuman: false }),
+      readGateFacts: async () => ({ turnRunning: false, awaitingHuman: false }),
       currentFence: () => 1,
       send: async (input) => {
         for (const block of input.body.blocks) {
