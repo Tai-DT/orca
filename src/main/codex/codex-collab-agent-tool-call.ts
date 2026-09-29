@@ -14,8 +14,8 @@
 //   * A wait that times out ends naming no receiver and no state.
 //   * `agentsStates` is the caller's last-known snapshot of each receiver. The helper's own turn
 //     frames own its execution, so nothing here reads it as execution state: only `notFound`,
-//     which says the receiver is no helper, and the snapshot itself, which is what the call
-//     reports and so what its row shows as output.
+//     which says the receiver is no helper, and the snapshot a wait or resume reports, which its
+//     row shows as output. A spawn's or close's predates what the call did, so its row does not.
 
 import { collapsedToolInputPrefix } from '../../shared/native-chat-tool-preview-prefix'
 import { readRecord, readString } from './codex-item-field-readers'
