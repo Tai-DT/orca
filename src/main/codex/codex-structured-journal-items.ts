@@ -98,15 +98,17 @@ export class CodexJournalItems {
     ) {
       return { handled: true, admission: { accepted: false, reason: 'failed' } }
     }
-    const translated = codexJournalItem(item, this.helperName)
+    const itemKey = codexStructuredItemKey(event.threadId, item.id)
+    const started =
+      event.method === 'item/completed' ? this.activeItems.get(itemKey)?.item : undefined
+    const translated = codexJournalItem(item, this.helperName, started)
     const command = readCodexJournalString(item, 'command')
     if (command) {
       const boundedCommand = Buffer.from(command, 'utf8')
         .subarray(0, MAX_CODEX_DETAIL_BYTES)
         .toString('utf8')
-      this.details.set(codexStructuredItemKey(event.threadId, item.id), boundedCommand)
+      this.details.set(itemKey, boundedCommand)
     }
-    const itemKey = codexStructuredItemKey(event.threadId, item.id)
     if (!translated.body) {
       if (event.method === 'item/completed') {
         this.streams.forget(event.threadId, item.id)

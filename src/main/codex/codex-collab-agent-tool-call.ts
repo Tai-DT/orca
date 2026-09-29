@@ -11,10 +11,11 @@
 //     carry them yet; `readCodexSubagentAnnouncements` is where they would be adopted.
 //   * The item names no nickname or task path, so the prompt is the only text that tells one
 //     helper from another.
+//   * A wait that times out ends naming no receiver and no state.
 //   * `agentsStates` is the caller's last-known snapshot of each receiver. The helper's own turn
 //     frames own its execution, so nothing here reads it as execution state: only `notFound`,
-//     which says the receiver is no helper, and `message`, what the helper said back, which the
-//     call's row shows as output.
+//     which says the receiver is no helper, and the snapshot itself, which is what the call
+//     reports and so what its row shows as output.
 
 import { collapsedToolInputPrefix } from '../../shared/native-chat-tool-preview-prefix'
 import { readRecord, readString } from './codex-item-field-readers'
@@ -35,24 +36,39 @@ export type CodexCollabAgentToolCall = {
   /** The receivers that are helpers: every one but those the call reports `notFound`. */
   helperThreadIds: string[]
   prompt: string | null
-  /** What each receiver said back, in `receiverThreadIds` order. */
-  replies: { threadId: string; message: string }[]
+  /** Each receiver's reported snapshot, in `receiverThreadIds` order: its `CollabAgentStatus`
+   *  (`pendingInit`, `running`, `completed`, `errored`, `shutdown`, …) and its message. */
+  states: { threadId: string; status: string | null; message: string | null }[]
 }
 
+function readReceiverThreadIds(item: CodexThreadItem | undefined): string[] {
+  return Array.isArray(item?.receiverThreadIds)
+    ? item.receiverThreadIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    : []
+}
+
+/** `started` is the same call's started item, when it was seen: a call keeps naming the helpers
+ *  it started on even when it ends naming fewer, as a timed-out wait ends naming none. */
 export function readCodexCollabAgentToolCall(
-  item: CodexThreadItem
+  item: CodexThreadItem,
+  started?: CodexThreadItem
 ): CodexCollabAgentToolCall | null {
   const tool = readString(item, 'tool')
   if (item.type !== CODEX_COLLAB_AGENT_TOOL_CALL_ITEM_TYPE || tool === null) {
     return null
   }
-  const receiverThreadIds = Array.isArray(item.receiverThreadIds)
-    ? item.receiverThreadIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
-    : []
-  const states = readRecord(item.agentsStates)
-  const replies = receiverThreadIds.flatMap((threadId) => {
-    const message = readString(readRecord(states[threadId]), 'message')
-    return message === null ? [] : [{ threadId, message }]
+  const receiverThreadIds = [
+    ...new Set([...readReceiverThreadIds(started), ...readReceiverThreadIds(item)])
+  ]
+  const snapshots = readRecord(item.agentsStates)
+  const states = receiverThreadIds.flatMap((threadId) => {
+    if (!Object.hasOwn(snapshots, threadId)) {
+      return []
+    }
+    const snapshot = readRecord(snapshots[threadId])
+    return [
+      { threadId, status: readString(snapshot, 'status'), message: readString(snapshot, 'message') }
+    ]
   })
   return {
     id: item.id,
@@ -60,10 +76,10 @@ export function readCodexCollabAgentToolCall(
     status: readString(item, 'status'),
     receiverThreadIds,
     helperThreadIds: receiverThreadIds.filter(
-      (threadId) => readString(readRecord(states[threadId]), 'status') !== 'notFound'
+      (threadId) => readString(readRecord(snapshots[threadId]), 'status') !== 'notFound'
     ),
     prompt: readString(item, 'prompt'),
-    replies
+    states
   }
 }
 

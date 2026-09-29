@@ -33,24 +33,68 @@ function helperNames(call: CodexCollabAgentToolCall, helperName?: CodexHelperNam
   return call.receiverThreadIds.map((threadId) => helperName?.(threadId) ?? threadId).join(', ')
 }
 
-/** What the helpers said back. One reply reads as itself; several are each put under their name. */
-function replyText(call: CodexCollabAgentToolCall, helperName?: CodexHelperName): string | null {
-  if (call.replies.length === 0) {
+/** Codex's own words for a helper's `CollabAgentStatus`, as its UI shows them. */
+const HELPER_STATUS_TEXT = new Map<string, string>([
+  ['pendingInit', 'Pending init'],
+  ['running', 'Running'],
+  ['interrupted', 'Interrupted'],
+  ['completed', 'Completed'],
+  ['errored', 'Error'],
+  ['shutdown', 'Shutdown'],
+  ['notFound', 'Not found']
+])
+
+const CALL_STATUS_TEXT = new Map<string, string>([
+  ['completed', 'Completed'],
+  ['failed', 'Failed'],
+  ['interrupted', 'Interrupted']
+])
+
+/** What the call reports about one helper. Only a wait returns what its helper said; any other
+ *  call reports the helper's status (a close's snapshot is the status it closed it in), and an
+ *  errored helper's message is its error. */
+function helperStateText(
+  call: CodexCollabAgentToolCall,
+  state: CodexCollabAgentToolCall['states'][number]
+): string | null {
+  if (state.message && (call.tool === 'wait' || state.status === 'errored')) {
+    return state.message
+  }
+  return state.status === null ? null : (HELPER_STATUS_TEXT.get(state.status) ?? state.status)
+}
+
+/** A finished call's output, taken from the item. Every finished call has one: a client that pairs
+ *  results by position (one predating result call ids) would otherwise draw each later output in
+ *  the run under the call before its own. */
+function outputText(call: CodexCollabAgentToolCall, helperName?: CodexHelperName): string | null {
+  if (call.status === null || call.status === 'inProgress') {
     return null
   }
-  if (call.replies.length === 1 && call.receiverThreadIds.length === 1) {
-    return call.replies[0].message
+  const reports = call.states.flatMap((state) => {
+    const text = helperStateText(call, state)
+    return text === null ? [] : [{ threadId: state.threadId, text }]
+  })
+  if (reports.length === 0) {
+    // A wait's end names only helpers that finished (none when it timed out; v2's never names any).
+    return call.tool === 'wait'
+      ? 'Finished waiting'
+      : (CALL_STATUS_TEXT.get(call.status) ?? call.status)
   }
-  return call.replies
-    .map(({ threadId, message }) => `${helperName?.(threadId) ?? threadId}: ${message}`)
+  if (reports.length === 1 && call.receiverThreadIds.length === 1) {
+    return reports[0].text
+  }
+  return reports
+    .map(({ threadId, text }) => `${helperName?.(threadId) ?? threadId}: ${text}`)
     .join('\n')
 }
 
+/** `started` is the call's started item, when the caller still holds it. */
 export function codexCollabAgentToolCallBody(
   item: CodexThreadItem,
-  helperName?: CodexHelperName
+  helperName?: CodexHelperName,
+  started?: CodexThreadItem
 ): AgentJournalItemBody | null {
-  const call = readCodexCollabAgentToolCall(item)
+  const call = readCodexCollabAgentToolCall(item, started)
   if (!call) {
     return null
   }
@@ -65,8 +109,8 @@ export function codexCollabAgentToolCallBody(
     ...(reasoningEffort ? { reasoningEffort } : {}),
     ...(call.receiverThreadIds.length > 0 ? { agents: call.receiverThreadIds } : {})
   }
-  const reply = replyText(call, helperName)
-  const output = reply === null ? null : boundInlineText(reply, DEFAULT_JOURNAL_PAYLOAD_LIMITS)
+  const text = outputText(call, helperName)
+  const output = text === null ? null : boundInlineText(text, DEFAULT_JOURNAL_PAYLOAD_LIMITS)
   return {
     kind: 'tool-call',
     name: codexCollabToolName(call),

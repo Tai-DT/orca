@@ -225,11 +225,13 @@ function webSearchItem(item: CodexThreadItem): CodexJournalItem {
  * Journal body for a Codex item, or null for one with nothing to render.
  *
  * Known empty items wait for later deltas. Unknown types become bounded status
- * rows so a provider release cannot make new activity invisible.
+ * rows so a provider release cannot make new activity invisible. `started` is a
+ * finished item's own started revision, when the caller still holds it.
  */
 export function codexJournalItem(
   item: CodexThreadItem,
-  helperName?: CodexHelperName
+  helperName?: CodexHelperName,
+  started?: CodexThreadItem
 ): CodexJournalItem {
   if (item.type === 'userMessage' || item.type === 'agentMessage') {
     const blocks = codexMessageBlocks(item)
@@ -256,7 +258,7 @@ export function codexJournalItem(
   if (item.type === 'imageView' || item.type === 'imageGeneration') {
     return { body: codexImageItemBody(item), handled: true }
   }
-  const collab = codexCollabAgentToolCallBody(item, helperName)
+  const collab = codexCollabAgentToolCallBody(item, helperName, started)
   if (collab) {
     return { body: collab, handled: true }
   }
