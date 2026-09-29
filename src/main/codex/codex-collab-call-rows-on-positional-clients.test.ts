@@ -132,10 +132,12 @@ async function publishedRows(frames: Frame[]): Promise<AgentJournalRenderItem[]>
   return [...rows.values()]
 }
 
+type PairedOutput = [call: string, output: string | undefined]
+
 /** What a client without result call ids draws: each call with the output its pairing gives it. */
 function positionalRuns(rows: AgentJournalRenderItem[]): {
-  mobile: [string, string | undefined][][]
-  desktop: [string, string | undefined][][]
+  mobile: PairedOutput[][]
+  desktop: PairedOutput[][]
 } {
   const withoutCallIds = (message: NativeChatMessage): NativeChatMessage => ({
     ...message,
@@ -152,21 +154,16 @@ function positionalRuns(rows: AgentJournalRenderItem[]): {
   ).filter((message) => message.blocks.some((block) => block.type === 'tool-call'))
   return {
     mobile: runs.map((message) =>
-      pairToolBlocks(message.blocks).map(
-        (pair) =>
-          [pair.call?.name ?? '(none)', pair.result?.output.trim()] as [string, string | undefined]
-      )
+      pairToolBlocks(message.blocks).map((pair): PairedOutput => [
+        pair.call?.name ?? '(none)',
+        pair.result?.output.trim()
+      ])
     ),
     desktop: runs.map((message) => {
       const pairing = pairNativeChatToolResults(message.blocks)
-      return message.blocks.flatMap((block) =>
+      return message.blocks.flatMap((block): PairedOutput[] =>
         block.type === 'tool-call'
-          ? [
-              [block.name, pairing.resultByCall.get(block)?.output.trim()] as [
-                string,
-                string | undefined
-              ]
-            ]
+          ? [[block.name, pairing.resultByCall.get(block)?.output.trim()]]
           : []
       )
     })
