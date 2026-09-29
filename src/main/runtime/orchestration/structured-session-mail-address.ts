@@ -15,12 +15,14 @@ import {
   ORCA_SESSION_ADDRESS_PREFIX,
   formatOrcaSessionAddress,
   isOrcaSessionId,
+  parseOrcaSessionAddress,
   type OrcaSessionId
 } from '../../../shared/orca-session-address'
 import { ORCHESTRATION_SESSION_CALLER_ERROR_CODES as CODES } from '../../../shared/orchestration-session-caller-codes'
 import { structuredWorkerHostScope } from '../structured-worker-identity'
 import type { OrchestrationDb } from './db'
 import { OrchestrationError } from './orchestration-error'
+import { canonicalOrcaSessionId } from './canonical-orca-session-id'
 import {
   resolveOrcaSessionParty,
   resolveOrchestrationParty,
@@ -105,14 +107,15 @@ export function addressableSessionParty(
 /**
  * How an agent is shown a mailbox address. A structured worker's handle is only its mailbox key: it
  * reads as its party's `session:<root id>`, the one address that worker is taught, and routes back
- * to that mailbox. A session address already is that spelling.
+ * to that mailbox. A session address is spelled with its `/clear` lineage root.
  */
 export function agentVisibleOrchestrationAddress(
   address: string,
   db: OrchestrationDb | null | undefined
 ): string {
   if (address.startsWith(ORCA_SESSION_ADDRESS_PREFIX)) {
-    return address
+    const sessionId = parseOrcaSessionAddress(address)
+    return sessionId ? formatOrcaSessionAddress(canonicalOrcaSessionId(sessionId)) : address
   }
   const party = resolveOrchestrationParty(address, db)
   return party.orcaSessionId === null ? address : formatOrcaSessionAddress(party.orcaSessionId)

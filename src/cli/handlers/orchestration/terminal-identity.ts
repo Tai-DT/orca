@@ -6,6 +6,7 @@ import { hasStructuredSessionMarker } from '../../../shared/structured-session-m
 import { readInjectedAgentSessionId } from '../../../shared/agent-session-caller-env'
 import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-address-prefix'
 import { sessionAddressForHost } from '../../session-caller-flags'
+import { resolveCliStatusCaller } from '../../runtime/status-caller'
 
 /**
  * The caller's terminal handle, or `undefined` when an injected agent session id names the caller:
@@ -170,10 +171,25 @@ function getClientErrorMessage(err: unknown): string | undefined {
   return typeof message === 'string' ? message : undefined
 }
 
-/** How check output names its caller: the handle, or `session:<id>`, a structured worker's too. */
-export function orchestrationCallerLabel(handle: string | undefined): string {
+/**
+ * How check output names its caller: the handle, or the address `orca status` reports, which the
+ * host derives (a `/clear`ed chat keeps its lineage root's). The live id only if the host can't say.
+ */
+export async function orchestrationCallerLabel(
+  handle: string | undefined,
+  client: Pick<RuntimeClient, 'call'>
+): Promise<string> {
+  if (handle) {
+    return handle
+  }
   const sessionId = readInjectedAgentSessionId()
-  return handle ?? (sessionId ? `${ORCA_SESSION_ADDRESS_PREFIX}${sessionId}` : 'unknown')
+  if (!sessionId) {
+    return 'unknown'
+  }
+  const caller = await resolveCliStatusCaller(client)
+  return caller && 'address' in caller
+    ? caller.address
+    : `${ORCA_SESSION_ADDRESS_PREFIX}${sessionId}`
 }
 
 export async function resolveCoordinatorTerminalHandle(

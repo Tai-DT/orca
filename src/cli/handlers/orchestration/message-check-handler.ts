@@ -44,7 +44,6 @@ export const ORCHESTRATION_CHECK_HANDLER: Record<string, CommandHandler> = {
     // Why: a session names itself by its id alone; a pane key it inherited is not its identity.
     const paneKey =
       explicitTerminal || terminal === undefined ? undefined : process.env.ORCA_PANE_KEY
-    const callerLabel = orchestrationCallerLabel(terminal)
     const stopKeepalive = wait ? startCheckKeepalive(timeoutMs) : null
     let result: Awaited<ReturnType<typeof client.call<CheckResult>>>
     try {
@@ -70,6 +69,11 @@ export const ORCHESTRATION_CHECK_HANDLER: Record<string, CommandHandler> = {
     if (peek) {
       result = filterLegacyPeekResult(result, wait)
     }
+    // Only rendered beside messages, so an empty check asks the host nothing more.
+    const callerLabel =
+      result.result.messages.length > 0
+        ? await orchestrationCallerLabel(terminal, client)
+        : (terminal ?? 'unknown')
     result = {
       ...result,
       result: prepareOrchestrationCheckOutput(result.result, callerLabel, flags.has('format'))
