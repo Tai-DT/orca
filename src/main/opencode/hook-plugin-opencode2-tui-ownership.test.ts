@@ -110,6 +110,10 @@ function fakeTui(version = '2.0.14') {
     loseEnd(sessionID: string) {
       running.delete(sessionID)
     },
+    // The session data reports a run whose start this TUI never saw.
+    loseStart(sessionID: string) {
+      running.add(sessionID)
+    },
     emit(event: BusEvent) {
       const sessionID = String(event.data.sessionID)
       if (event.type === 'session.created') {
@@ -284,6 +288,49 @@ describe('OpenCode 2 TUI adapter: each pane reports its own sessions', () => {
     const cleanup = await (await loadPlugin()).default?.setup?.(tui.ctx)
     tui.navigate(SES_A)
     await pump(tui, turn(SES_A, 'A').start)
+    tui.loseEnd(SES_A)
+    await vi.waitFor(() => {
+      expect(summary(posts).at(-1)).toBe(`SessionIdle:${SES_A}`)
+    })
+    await cleanup?.()
+  })
+
+  // Why: the session data applies events before this plugin's queued handling catches up.
+  it('does not settle a turn early while its events are still queued', async () => {
+    process.env.ORCA_PANE_KEY = PANE_A
+    const tui = fakeTui()
+    const cleanup = await (await loadPlugin()).default?.setup?.(tui.ctx)
+    tui.navigate(SES_A)
+    await tick()
+    const a = turn(SES_A, 'A fails fast')
+    for (const event of [...a.start, ...a.finish]) {
+      tui.emit(event)
+    }
+    await vi.waitFor(() => {
+      expect(summary(posts).at(-1)).toBe(`SessionIdle:${SES_A}`)
+    })
+    await tick(250)
+    await cleanup?.()
+    const statuses = posts
+      .map((post) => post.payload?.hook_event_name)
+      .filter((name) => name === 'SessionBusy' || name === 'SessionIdle')
+    expect(statuses).toEqual(['SessionBusy', 'SessionIdle'])
+  })
+
+  it('re-derives Working for an owned session whose start it missed', async () => {
+    process.env.ORCA_PANE_KEY = PANE_A
+    const tui = fakeTui()
+    const cleanup = await (await loadPlugin()).default?.setup?.(tui.ctx)
+    tui.navigate(SES_A)
+    const first = turn(SES_A, 'A')
+    await pump(tui, [...first.start, ...first.finish])
+    await vi.waitFor(() => {
+      expect(summary(posts).at(-1)).toBe(`SessionIdle:${SES_A}`)
+    })
+    tui.loseStart(SES_A)
+    await vi.waitFor(() => {
+      expect(summary(posts).at(-1)).toBe(`SessionBusy:${SES_A}`)
+    })
     tui.loseEnd(SES_A)
     await vi.waitFor(() => {
       expect(summary(posts).at(-1)).toBe(`SessionIdle:${SES_A}`)

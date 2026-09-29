@@ -167,10 +167,14 @@ export class OpenCodeHookService {
   // Why: pre-1.4.209 Orca left a server()-only plugin here that OpenCode 2 rejects. Only helps
   // processes that load it later; a running OpenCode 2 service keeps its cached module until restarted.
   refreshLegacySharedPlugin(): void {
-    const pluginPath = join(this.getSharedConfigDir(), 'plugins', this.pluginFileName)
+    const pluginsDir = join(this.getSharedConfigDir(), 'plugins')
+    const pluginPath = join(pluginsDir, this.pluginFileName)
     try {
       const source = this.pluginSource()
-      if (readFileSync(pluginPath, 'utf8') !== source) {
+      const installed = readFileSync(pluginPath, 'utf8')
+      // Why: a TUI or service still loading this dir needs the TUI copy too, or the service keeps reporting under its starter pane.
+      this.writeTuiPlugin(pluginsDir, source)
+      if (installed !== source) {
         writeFileAtomically(pluginPath, source)
       }
     } catch (error) {

@@ -97,7 +97,7 @@ describe('OpenCode hook plugin source', () => {
     const digest = (source: string): string => createHash('sha256').update(source).digest('hex')
 
     expect(digest(getOpenCodePluginSource())).toBe(
-      'cde47e81deb4568574ac7f52428e74138ffbf63570d448621a72a45dee7750a9'
+      'dff1d4e4671d10382e19256fb1fe5502bbc1bf7dc50b4f5d9d3df2d7dbf5a426'
     )
     expect(
       digest(getOpenCodeFamilyPluginSource('/hook/mimo-code', { emitSessionStart: false }))
@@ -375,6 +375,10 @@ describe('OpenCodeHookService buildPtyEnv / clearPty round-trip', () => {
     expect(module.default?.id).toBe('orca-opencode-status')
     expect(module.default?.server).toBeTypeOf('function')
     expect(module.default?.setup).toBeTypeOf('function')
+    // A service loading this dir stands down only when the TUI copy sits beside it.
+    expect(
+      readFileSync(join(legacyPluginPath, '..', 'orca-opencode-status-tui', 'tui.js'), 'utf8')
+    ).toBe(getOpenCodePluginSource())
   })
 
   it('repairs late and overwritten legacy plugins atomically on the same service', () => {
@@ -389,7 +393,10 @@ describe('OpenCodeHookService buildPtyEnv / clearPty round-trip', () => {
         service.refreshLegacySharedPlugin()
         expect(readFileSync(path, 'utf8')).toBe(getOpenCodePluginSource())
         expect(readFileSync(reader, 'utf8')).toBe(stale)
-        expect(readdirSync(join(path, '..'))).toEqual(['orca-opencode-status.js'])
+        expect(readdirSync(join(path, '..')).sort()).toEqual([
+          'orca-opencode-status-tui',
+          'orca-opencode-status.js'
+        ])
       } finally {
         closeSync(reader)
       }

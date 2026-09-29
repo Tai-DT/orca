@@ -58,6 +58,7 @@ async function setupOpenCode2Tui(ctx) {
     let disposed = false;
     let chain = Promise.resolve();
     let syncQueued = false;
+    let queuedEvents = 0;
     let routeRoot;
     const owned = new Set();
     // Root events seen before this pane owned the root (the route can switch after them).
@@ -99,6 +100,11 @@ async function setupOpenCode2Tui(ctx) {
       const held = early.get(rootSessionID) || [];
       early.delete(rootSessionID);
       for (const event of held) await forward(event);
+      await reassert(rootSessionID);
+    }
+
+    // Re-derives a running root's Busy and open blockers from the session data.
+    async function reassert(rootSessionID) {
       if (data.status(rootSessionID) !== "running") return;
       await forward({ type: "session.status", properties: { sessionID: rootSessionID, status: { type: "busy" } } });
       for (const member of family(rootSessionID)) {
@@ -129,10 +135,14 @@ async function setupOpenCode2Tui(ctx) {
           owned.delete(rootSessionID);
         }
       }
+      // Why wait for an empty queue: the session data applies each event before it reaches this
+      // plugin, so it runs ahead of the engine until the queue drains; a mismatch after that is
+      // an execution start or end missed across a reconnect, which the data re-hydrates.
+      if (queuedEvents > 0) return;
       for (const rootSessionID of owned) {
-        // Why: an execution end missed across a reconnect would hold the pane Working; the TUI's
-        // session data re-hydrates on reconnect, so settle against it.
-        if (busyRootOwnerBySessionID.has(rootSessionID) && !familyRunning(rootSessionID) && !familyBlocked(rootSessionID)) {
+        if (!engineHoldsRoot(rootSessionID)) {
+          await reassert(rootSessionID);
+        } else if (busyRootOwnerBySessionID.has(rootSessionID) && !familyRunning(rootSessionID) && !familyBlocked(rootSessionID)) {
           await forward({ type: "session.status", properties: { sessionID: rootSessionID, status: { type: "idle" } } });
         }
       }
@@ -180,7 +190,14 @@ async function setupOpenCode2Tui(ctx) {
 
     const unsubscribe = ctx.data.listen(({ details } = {}) => {
       if (disposed || !details || typeof details.type !== "string") return;
-      void run(() => handle(details));
+      queuedEvents += 1;
+      void run(async () => {
+        try {
+          await handle(details);
+        } finally {
+          queuedEvents -= 1;
+        }
+      });
     });
     const poll = setInterval(() => {
       if (syncQueued || disposed) return;
