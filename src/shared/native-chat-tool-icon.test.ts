@@ -56,9 +56,9 @@ describe('native chat tool icons', () => {
     expect(nativeChatToolCategory('web search')).toBe('webSearch')
   })
 
-  it('counts only the Codex call that starts a helper as running an agent', () => {
-    expect(nativeChatToolCategory('spawn_agent')).toBe('subAgentActivity')
-    expect(nativeChatToolIconName('spawn_agent')).toBe('bot')
+  it('counts no Codex helper call as running an agent, since a spawn ends once its helper starts', () => {
+    expect(nativeChatToolCategory('task')).toBe('subAgentActivity')
+    expect(nativeChatToolCategory('spawn_agent')).toBeNull()
     expect(nativeChatToolCategory('wait_agent')).toBeNull()
     expect(nativeChatToolCategory('close_agent')).toBeNull()
   })
