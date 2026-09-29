@@ -214,13 +214,13 @@ export class PluginOverlayManager {
     const pluginsDir = join(overlayDir, 'plugins')
     mkdirSync(pluginsDir, { recursive: true })
     const pluginPath = join(pluginsDir, pluginFileName)
+    writeOpenCodeTuiPlugin(pluginsDir, pluginFileName, source)
     try {
       unlinkSync(pluginPath)
     } catch {
       // Fresh overlay or no same-named stale symlink.
     }
     writeFileSync(pluginPath, source)
-    writeOpenCodeTuiPlugin(pluginsDir, pluginFileName, source)
   }
 
   /** Materialize the OpenCode plugin overlay for `id` (typically the

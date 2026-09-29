@@ -97,7 +97,7 @@ describe('OpenCode hook plugin source', () => {
     const digest = (source: string): string => createHash('sha256').update(source).digest('hex')
 
     expect(digest(getOpenCodePluginSource())).toBe(
-      '7ca8891bb88e0814aa1cee859fd7a542fb94d8955ca03c74e9334e07180980be'
+      'cde47e81deb4568574ac7f52428e74138ffbf63570d448621a72a45dee7750a9'
     )
     expect(
       digest(getOpenCodeFamilyPluginSource('/hook/mimo-code', { emitSessionStart: false }))
@@ -304,6 +304,24 @@ describe('OpenCodeHookService buildPtyEnv / clearPty round-trip', () => {
     utimesSync(tuiEntry, past, past)
     service.buildPtyEnv(daemonSessionId)
     expect(statSync(tuiEntry).mtimeMs).toBe(past.getTime())
+  })
+
+  // Why: a service that reloads between the two writes must already find the TUI copy and stand down.
+  it('writes the TUI copy before the server plugin file', () => {
+    const pluginsDir = join(resolveOpenCodeConfigDirectory(), 'plugins')
+    const serverPath = join(pluginsDir, 'orca-opencode2-status.js')
+    const tuiDir = join(pluginsDir, 'orca-opencode2-status-tui')
+    rmSync(serverPath, { recursive: true, force: true })
+    rmSync(tuiDir, { recursive: true, force: true })
+    // A directory in the server file's place makes that write fail.
+    mkdirSync(serverPath, { recursive: true })
+    try {
+      openCode2HookService.buildPtyEnv(daemonSessionId)
+      expect(existsSync(join(tuiDir, 'tui.js'))).toBe(true)
+    } finally {
+      rmSync(serverPath, { recursive: true, force: true })
+      rmSync(tuiDir, { recursive: true, force: true })
+    }
   })
 
   // Why: #22234 — OpenCode 2 installs under the plain `opencode` name, and its loader

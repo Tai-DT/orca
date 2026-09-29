@@ -106,6 +106,10 @@ function fakeTui(version = '2.0.14') {
     navigate(sessionID: string) {
       route = { type: 'session', sessionID }
     },
+    // The session data stops reporting a run without this TUI seeing its end event.
+    loseEnd(sessionID: string) {
+      running.delete(sessionID)
+    },
     emit(event: BusEvent) {
       const sessionID = String(event.data.sessionID)
       if (event.type === 'session.created') {
@@ -273,14 +277,32 @@ describe('OpenCode 2 TUI adapter: each pane reports its own sessions', () => {
     expect(posts).toEqual([])
   })
 
+  // Why: a turn the TUI did not see end must not hold the pane Working (e.g. across a reconnect).
+  it('settles an owned turn once the session data says it ended without an end event', async () => {
+    process.env.ORCA_PANE_KEY = PANE_A
+    const tui = fakeTui()
+    const cleanup = await (await loadPlugin()).default?.setup?.(tui.ctx)
+    tui.navigate(SES_A)
+    await pump(tui, turn(SES_A, 'A').start)
+    tui.loseEnd(SES_A)
+    await vi.waitFor(() => {
+      expect(summary(posts).at(-1)).toBe(`SessionIdle:${SES_A}`)
+    })
+    await cleanup?.()
+  })
+
   it.each([
     ['an OpenCode 1 TUI', () => fakeTui('1.18.33')],
-    ['the other pane variant', () => fakeTui()]
+    ['the other pane variant', () => fakeTui()],
+    ['a TUI outside an Orca pane', () => fakeTui()]
   ])('stays silent in %s', async (label, make) => {
     if (label === 'the other pane variant') {
       process.env.ORCA_OPENCODE_AGENT = 'opencode2'
     }
     process.env.ORCA_PANE_KEY = PANE_A
+    if (label === 'a TUI outside an Orca pane') {
+      delete process.env.ORCA_PANE_KEY
+    }
     const tui = make()
     const cleanup = await (await loadPlugin()).default?.setup?.(tui.ctx)
     expect(tui.listen).not.toHaveBeenCalled()

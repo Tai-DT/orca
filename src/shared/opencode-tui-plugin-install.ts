@@ -13,7 +13,8 @@ export function openCodeTuiPluginDirName(pluginFileName: string): string {
 
 /**
  * Install the TUI copy beside the server plugin file. The same module serves
- * both: its setup() tells a TUI context from a server context.
+ * both: its setup() tells a TUI context from a server context. Call it before
+ * writing the server file, which decides at load whether to stand down.
  */
 export function writeOpenCodeTuiPlugin(
   pluginsDir: string,

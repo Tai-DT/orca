@@ -291,22 +291,22 @@ export class OpenCodeHookService {
     const pluginsDir = join(overlayDir, 'plugins')
     mkdirSync(pluginsDir, { recursive: true })
     const pluginPath = join(pluginsDir, this.pluginFileName)
+    const source = this.pluginSource()
+    this.writeTuiPlugin(pluginsDir, source)
     try {
       unlinkSync(pluginPath)
     } catch {
       // File may not exist on a fresh overlay; a real failure surfaces on writeFileSync below.
     }
-    const source = this.pluginSource()
     writeFileSync(pluginPath, source)
-    this.writeTuiPlugin(pluginsDir, source)
   }
 
   private writePluginToConfigDir(configDir: string): void {
     const pluginsDir = join(configDir, 'plugins')
     mkdirSync(pluginsDir, { recursive: true })
     const source = this.pluginSource()
-    writeFileSync(join(pluginsDir, this.pluginFileName), source)
     this.writeTuiPlugin(pluginsDir, source)
+    writeFileSync(join(pluginsDir, this.pluginFileName), source)
   }
 
   private writeTuiPlugin(pluginsDir: string, source: string): void {

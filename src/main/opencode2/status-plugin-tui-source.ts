@@ -30,6 +30,8 @@ function engineHoldsRoot(rootSessionID) {
 
 async function setupOpenCode2Tui(ctx) {
   const noop = async () => {};
+  // Why: post() needs this pane's key, so a TUI outside an Orca pane has nothing to report.
+  if (!process.env.ORCA_PANE_KEY) return noop;
   let hooks;
   try {
     const data = ctx.data.session;
@@ -78,6 +80,12 @@ async function setupOpenCode2Tui(ctx) {
       if (route?.type !== "session" || typeof route.sessionID !== "string") return undefined;
       return typeof data.root === "function" ? data.root(route.sessionID) || route.sessionID : route.sessionID;
     };
+    const family = (rootSessionID) =>
+      new Set([rootSessionID, ...(typeof data.family === "function" ? data.family(rootSessionID) || [] : [])]);
+    const familyRunning = (rootSessionID) =>
+      [...family(rootSessionID)].some((id) => data.status(id) === "running");
+    const familyBlocked = (rootSessionID) =>
+      [...family(rootSessionID)].some((id) => (data.permission?.list?.(id) || []).length > 0 || (data.form?.list?.(id) || []).length > 0);
     const remember = (rootSessionID, event) => {
       const held = early.get(rootSessionID) || [];
       early.delete(rootSessionID);
@@ -93,8 +101,7 @@ async function setupOpenCode2Tui(ctx) {
       for (const event of held) await forward(event);
       if (data.status(rootSessionID) !== "running") return;
       await forward({ type: "session.status", properties: { sessionID: rootSessionID, status: { type: "busy" } } });
-      const members = typeof data.family === "function" ? data.family(rootSessionID) : [];
-      for (const member of new Set([rootSessionID, ...members])) {
+      for (const member of family(rootSessionID)) {
         for (const request of data.permission?.list?.(member) || []) {
           const translated = translateOpenCode2Event("permission.asked", request);
           if (translated) await forward(translated);
@@ -120,6 +127,13 @@ async function setupOpenCode2Tui(ctx) {
           !engineHoldsRoot(rootSessionID)
         ) {
           owned.delete(rootSessionID);
+        }
+      }
+      for (const rootSessionID of owned) {
+        // Why: an execution end missed across a reconnect would hold the pane Working; the TUI's
+        // session data re-hydrates on reconnect, so settle against it.
+        if (busyRootOwnerBySessionID.has(rootSessionID) && !familyRunning(rootSessionID) && !familyBlocked(rootSessionID)) {
+          await forward({ type: "session.status", properties: { sessionID: rootSessionID, status: { type: "idle" } } });
         }
       }
     }

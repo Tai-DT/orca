@@ -98,6 +98,21 @@ describe('PluginOverlayManager', () => {
     expect(statSync(tuiEntry).mtimeMs).toBe(past.getTime())
   })
 
+  // Why: a service that reloads between the two writes must already find the TUI copy and stand down.
+  it('writes the TUI copy before the server plugin file', () => {
+    manager.setSources({ opencode2PluginSource: 'v2 plugin' })
+    const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
+    // A directory in the server file's place makes that write fail.
+    mkdirSync(join(pluginsDir, 'orca-opencode2-status.js'), { recursive: true })
+
+    expect(
+      manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
+    ).toBe(false)
+    expect(readFileSync(join(pluginsDir, 'orca-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
+      'v2 plugin'
+    )
+  })
+
   it('mirrors a preexisting remote OpenCode config dir before adding Orca plugin', () => {
     const userConfigDir = join(homeDir, 'company-opencode')
     mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
