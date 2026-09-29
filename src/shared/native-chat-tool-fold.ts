@@ -11,7 +11,6 @@ import {
 import { agentJournalItemSubagentId } from './agent-session-journal-producer'
 import { isKnownHarnessInjectedUserTurnText } from './harness-injected-user-turns'
 import { isNoiseMessage } from './native-chat-noise'
-import { answeredToolCallIndex } from './native-chat-tool-pairing'
 
 function isToolOnlyMessage(message: NativeChatMessage): boolean {
   return (
@@ -154,8 +153,20 @@ export type NativeChatToolPair = {
   result?: NativeChatToolResultBlock
 }
 
-/** Pair results to calls by `answeredToolCallIndex`, the rule `pairNativeChatToolResults` uses,
- *  so every reader of a run agrees on who owns an output. */
+/** Where in `unanswered` (oldest first) the call `result` answers is, or -1 for none. */
+function answeredToolCallIndex<T>(
+  unanswered: readonly T[],
+  result: NativeChatToolResultBlock,
+  callIdOf: (entry: T) => string | undefined
+): number {
+  if (result.callId === undefined) {
+    return unanswered.length > 0 ? 0 : -1
+  }
+  return unanswered.findIndex((entry) => callIdOf(entry) === result.callId)
+}
+
+/** Pair results to calls by `answeredToolCallIndex`. Every reader of a run pairs through this
+ *  (`pairNativeChatToolResults` included), so they all agree on who owns an output. */
 export function pairToolBlocks(
   blocks: readonly NativeChatBlock[],
   limit = Infinity
