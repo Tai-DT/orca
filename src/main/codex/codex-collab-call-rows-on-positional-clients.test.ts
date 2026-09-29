@@ -217,14 +217,13 @@ describe('Codex collab call rows on a client that pairs results by position', ()
     // The helper's own shell is its own run, between the parent's two.
     const runs = [
       [
-        ['spawn_agent', 'Pending init'],
+        ['spawn_agent', 'Spawned'],
         ['shell', 'PARENT_DONE']
       ],
       [['shell', 'CHILD_DONE']],
       [
         ['wait_agent', 'CHILD_REPLY'],
-        // A close reports the status it closed the helper in, not the reply the wait showed.
-        ['close_agent', 'Completed'],
+        ['close_agent', 'Closed'],
         ['shell', 'AFTER_CLOSE']
       ]
     ]
@@ -269,9 +268,10 @@ describe('Codex collab call rows on a client that pairs results by position', ()
     })
     const runs = [
       [
-        ['spawn_agent', 'Pending init'],
+        ['spawn_agent', 'Spawned'],
         ['wait_agent', 'Finished waiting'],
-        ['close_agent', 'Running'],
+        // Its snapshot says `running`: the status from before the close.
+        ['close_agent', 'Closed'],
         ['shell', 'PARENT_DONE']
       ]
     ]
@@ -280,7 +280,7 @@ describe('Codex collab call rows on a client that pairs results by position', ()
     expect(desktop).toEqual(runs)
   })
 
-  it('gives every other finished call what it reports, even on a running helper', async () => {
+  it('gives every other finished call what it did or what it reports', async () => {
     const OTHER = '01a0ea72-0000-7000-8000-000000000002'
     const finished = (id: string, tool: string, fields: Record<string, unknown>): Frame[] => [
       collab('item/started', { id, tool, status: 'inProgress', receiverThreadIds: [HELPER] }),
@@ -308,7 +308,6 @@ describe('Codex collab call rows on a client that pairs results by position', ()
         prompt: 'keep going',
         agentsStates: { [HELPER]: { status: 'running', message: null } }
       }),
-      // A status's message is the helper's last reply; only a wait reports it.
       ...finished('call-resume', 'resumeAgent', {
         agentsStates: { [HELPER]: { status: 'completed', message: 'OLD_REPLY' } }
       }),
@@ -331,11 +330,11 @@ describe('Codex collab call rows on a client that pairs results by position', ()
     ])
     const runs = [
       [
-        ['spawn_agent', 'Pending init'],
-        ['spawn_agent', 'Failed'],
-        ['send_input', 'Running'],
-        ['resume_agent', 'Completed'],
-        ['wait_agent', `${OTHER}: boom`],
+        ['spawn_agent', 'Spawned'],
+        ['spawn_agent', 'Agent spawn failed'],
+        ['send_input', 'Sent input'],
+        ['resume_agent', 'Completed - OLD_REPLY'],
+        ['wait_agent', `${OTHER}: Error - boom`],
         ['shell', 'PARENT_DONE']
       ]
     ]

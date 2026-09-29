@@ -33,13 +33,12 @@ function helperNames(call: CodexCollabAgentToolCall, helperName?: CodexHelperNam
   return call.receiverThreadIds.map((threadId) => helperName?.(threadId) ?? threadId).join(', ')
 }
 
-/** Codex's own words for a helper's `CollabAgentStatus`, as its UI shows them. */
+/** Codex's own words for a helper's `CollabAgentStatus`, as its client shows them. */
 const HELPER_STATUS_TEXT = new Map<string, string>([
   ['pendingInit', 'Pending init'],
   ['running', 'Running'],
   ['interrupted', 'Interrupted'],
   ['completed', 'Completed'],
-  ['errored', 'Error'],
   ['shutdown', 'Shutdown'],
   ['notFound', 'Not found']
 ])
@@ -50,28 +49,46 @@ const CALL_STATUS_TEXT = new Map<string, string>([
   ['interrupted', 'Interrupted']
 ])
 
-/** What the call reports about one helper. Only a wait returns what its helper said; any other
- *  call reports the helper's status (a close's snapshot is the status it closed it in), and an
- *  errored helper's message is its error. */
-function helperStateText(
-  call: CodexCollabAgentToolCall,
-  state: CodexCollabAgentToolCall['states'][number]
-): string | null {
-  if (state.message && (call.tool === 'wait' || state.status === 'errored')) {
-    return state.message
+type HelperState = CodexCollabAgentToolCall['states'][number]
+
+/** A helper's status summarised as Codex's own client does: a completed helper with its last
+ *  reply, an errored one with its error. */
+function statusSummary(state: HelperState): string | null {
+  if (state.status === 'errored') {
+    return `Error - ${state.message ?? 'Agent errored'}`
+  }
+  if (state.status === 'completed' && state.message) {
+    return `Completed - ${state.message}`
   }
   return state.status === null ? null : (HELPER_STATUS_TEXT.get(state.status) ?? state.status)
 }
 
-/** A finished call's output, taken from the item. Every finished call has one: a client that pairs
- *  results by position (one predating result call ids) would otherwise draw each later output in
- *  the run under the call before its own. */
+/** A finished call's output, worded as Codex's own client words the call. Every finished call has
+ *  one: a client that pairs results by position (one predating result call ids) would otherwise
+ *  draw each later output in the run under the call before its own. The row label already names
+ *  the helper, so the output does not. */
 function outputText(call: CodexCollabAgentToolCall, helperName?: CodexHelperName): string | null {
   if (call.status === null || call.status === 'inProgress') {
     return null
   }
+  // The status a spawn or close reports predates what it did (a closed helper reads `running`),
+  // so these say what the call did.
+  switch (call.tool) {
+    case 'spawnAgent':
+      return call.receiverThreadIds.length > 0 ? 'Spawned' : 'Agent spawn failed'
+    case 'sendInput':
+      return 'Sent input'
+    case 'closeAgent':
+      return 'Closed'
+    case 'resumeAgent':
+      return (call.states[0] && statusSummary(call.states[0])) ?? 'Error - Agent resume failed'
+  }
   const reports = call.states.flatMap((state) => {
-    const text = helperStateText(call, state)
+    // A wait returns what each finished helper said.
+    const text =
+      call.tool === 'wait' && state.status === 'completed' && state.message
+        ? state.message
+        : statusSummary(state)
     return text === null ? [] : [{ threadId: state.threadId, text }]
   })
   if (reports.length === 0) {
