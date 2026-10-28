@@ -50,6 +50,20 @@ function text(row: SqliteRow, column: string): string | null {
   return typeof value === 'string' ? value : null
 }
 
+const operationKeyDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+
+function operationKeyText(row: SqliteRow): string | null {
+  const bytes = row.operation_key_bytes
+  if (!(bytes instanceof Uint8Array)) {
+    return null
+  }
+  try {
+    return operationKeyDecoder.decode(bytes)
+  } catch {
+    return null
+  }
+}
+
 function parseJson(json: string | null): { ok: true; value: unknown } | { ok: false } {
   if (json === null) {
     return { ok: false }
@@ -115,9 +129,15 @@ export function loadAgentSessionStoreRows(db: Database.Database): AgentSessionSt
     }
   }
   for (const row of db
-    .prepare('SELECT operation_key, row_json FROM agent_session_operations ORDER BY rowid')
+    .prepare(
+      `SELECT
+        CASE WHEN typeof(operation_key) = 'text' THEN CAST(operation_key AS BLOB) END AS operation_key_bytes,
+        row_json
+      FROM agent_session_operations
+      ORDER BY rowid`
+    )
     .all()) {
-    const key = text(row, 'operation_key')
+    const key = operationKeyText(row)
     const parsed = parseJson(text(row, 'row_json'))
     if (key !== null && parsed.ok && isReadableAgentSessionStoreOperation(key, parsed.value)) {
       state.operations.set(key, parsed.value)

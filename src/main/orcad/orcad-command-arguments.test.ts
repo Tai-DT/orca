@@ -2,7 +2,29 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { resolveOrcadWebClientRoot } from './orcad-command-arguments'
+import { parseArgs, resolveOrcadWebClientRoot } from './orcad-command-arguments'
+
+describe('parseArgs', () => {
+  it('turns on advertisement for --advertise', () => {
+    const options = parseArgs(['--advertise'])
+    expect(options.advertise).toBe(true)
+    expect(options.advertisePair).not.toBe(true)
+  })
+
+  it('turns on both advertisement flags for --advertise-pair', () => {
+    expect(parseArgs(['--advertise-pair'])).toMatchObject({
+      advertise: true,
+      advertisePair: true
+    })
+  })
+
+  it.each(['--no-pairing', '--mobile-pairing'])(
+    'rejects --advertise-pair combined with %s',
+    (flag) => {
+      expect(() => parseArgs(['--advertise-pair', flag])).toThrow(/advertise-pair/)
+    }
+  )
+})
 
 describe('resolveOrcadWebClientRoot', () => {
   const roots: string[] = []

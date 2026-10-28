@@ -6,7 +6,7 @@ export const SERVE_COMMAND_SPECS: CommandSpec[] = [
     path: ['serve'],
     summary: 'Start an Orca runtime server without opening a desktop window',
     usage:
-      'orca serve [--port <port>] [--pairing-address <host>] [--mobile-pairing] [--no-pairing] [--grant-desktop-control] [--project-root <path>] [--recipe-json] [--supervise] [--force] [--reclaim-stale-lock [--data-root <dir>] [--yes]] [--json]',
+      'orca serve [--port <port>] [--pairing-address <host>] [--mobile-pairing] [--no-pairing] [--grant-desktop-control] [--advertise] [--advertise-pair] [--project-root <path>] [--recipe-json] [--supervise] [--force] [--reclaim-stale-lock [--data-root <dir>] [--yes]] [--json]',
     allowedFlags: [
       ...GLOBAL_FLAGS,
       'port',
@@ -14,6 +14,8 @@ export const SERVE_COMMAND_SPECS: CommandSpec[] = [
       'mobile-pairing',
       'no-pairing',
       'grant-desktop-control',
+      'advertise',
+      'advertise-pair',
       'project-root',
       'recipe-json',
       'supervise',
@@ -28,6 +30,8 @@ export const SERVE_COMMAND_SPECS: CommandSpec[] = [
       '--pairing-address changes only the client-advertised address; use a reachable LAN, Tailscale, SSH-forward, or reverse-proxy endpoint.',
       'Use --recipe-json with --project-root from VM recipes to print the recipe result JSON and leave the server running.',
       'Use --mobile-pairing to print a mobile-scoped pairing QR/link instead of the default runtime-environment pairing link.',
+      '--advertise publishes this node on the LAN via mDNS (_orca-node._tcp) with its name, platform, and version so `orca devices discover` can find it.',
+      '--advertise-pair also embeds the runtime pairing offer in the advertisement, so `orca devices add --name <node>` needs no copied link. Advertised offers also need --pairing-address to point at an address other machines can reach. Anyone on the LAN can pair; use only on networks you trust. Implies --advertise.',
       "A paired client cannot drive this machine's desktop (orca computer) unless the offer was created with --grant-desktop-control.",
       'When the web client bundle is available, the server also prints a browser URL with the pairing data embedded.',
       'Exits with code 3, without starting anything, when another Orca already serves this profile or cannot be shown to have stopped.',
@@ -43,6 +47,8 @@ export const SERVE_COMMAND_SPECS: CommandSpec[] = [
       'orca serve --project-root /workspace/repo --pairing-address wss://sandbox.example.com --recipe-json',
       'orca serve --port 6768 --pairing-address 100.64.1.20',
       'orca serve --pairing-address 100.64.1.20 --mobile-pairing',
+      'orca serve --advertise',
+      'orca serve --advertise-pair',
       'orca serve --reclaim-stale-lock'
     ]
   },

@@ -29,6 +29,7 @@ import { installOrcadProcessErrorGuards } from './orcad-process-error-guards'
 import { orcadWsPortOptions } from './orcad-ws-port-policy'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
+import { advertiseOrcadServeOnLan } from './orcad-lan-advertise'
 
 export { parseArgs }
 
@@ -322,6 +323,8 @@ async function startOrcadRuntime(
   })
 
   await new ServeReadinessPublisher().publish(readiness, servePublishMode(options))
+
+  await advertiseOrcadServeOnLan(options, readiness, registerCleanup)
 
   await idleExitStartup.start({
     rpc,

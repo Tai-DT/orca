@@ -13,6 +13,7 @@ import {
   openTestJournalHostDatabase
 } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import type Database from '../sqlite/sync-database'
+import type { SqliteRow } from '../sqlite/sqlite-statement'
 import { AgentSessionRecordStore } from './agent-session-record-store'
 import type { RetiredAgentSessionClaimKey } from './agent-session-store-state'
 
@@ -134,6 +135,20 @@ export async function seedTestAgentSessionStoreFromNewerBuild(
   closeTestJournalHostDatabase(stateDirectory)
 }
 
+const persistedKeyDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+
+function persistedOperationKey(row: SqliteRow): string | null {
+  const bytes = row.operation_key_bytes
+  if (!(bytes instanceof Uint8Array)) {
+    return null
+  }
+  try {
+    return persistedKeyDecoder.decode(bytes)
+  } catch {
+    return null
+  }
+}
+
 function parsed(json: unknown): unknown {
   return typeof json === 'string' ? JSON.parse(json) : null
 }
@@ -157,12 +172,20 @@ export async function readPersistedTestAgentSessionStore(
     ) as PersistedAgentSessionRecord
   }
   for (const row of db
-    .prepare('SELECT operation_key, row_json FROM agent_session_operations ORDER BY rowid')
+    .prepare(
+      `SELECT
+        CASE WHEN typeof(operation_key) = 'text' THEN CAST(operation_key AS BLOB) END AS operation_key_bytes,
+        row_json
+      FROM agent_session_operations
+      ORDER BY rowid`
+    )
     .all()) {
+    const operationKey = persistedOperationKey(row)
+    if (operationKey === null) {
+      continue
+    }
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: test read-back of rows the store wrote after validating them.
-    persisted.operations[String(row.operation_key)] = parsed(
-      row.row_json
-    ) as AgentSessionOperationRow
+    persisted.operations[operationKey] = parsed(row.row_json) as AgentSessionOperationRow
   }
   for (const row of db
     .prepare('SELECT key_id, retired_at FROM agent_session_retired_claim_keys ORDER BY rowid')

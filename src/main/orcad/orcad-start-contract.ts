@@ -9,6 +9,10 @@ export type OrcadOptions = {
   /** Request a mobile-scoped pairing offer and terminal QR. */
   mobilePairing?: boolean
   grantDesktopControl?: boolean
+  /** Publish this node on the LAN so other Orca installs can discover it. */
+  advertise?: boolean
+  /** Also broadcast the runtime pairing offer; anyone on the LAN can pair. */
+  advertisePair?: boolean
   /** Print only the ephemeral-VM recipe line. */
   recipeJson?: boolean
   projectRoot?: string

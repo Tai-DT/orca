@@ -10,7 +10,7 @@ import type { RuntimeStatus } from '../../shared/runtime-types'
 import { RuntimeClientError, type RuntimeRpcResponse } from './types'
 
 // Paired CLI callers are not exempt from the host's agent.launch gate like the local socket is.
-const CLI_CLIENT_CAPABILITIES = [AGENT_LAUNCH_RUNTIME_CAPABILITY] as const
+export const CLI_CLIENT_CAPABILITIES = [AGENT_LAUNCH_RUNTIME_CAPABILITY] as const
 
 export async function sendWebSocketRequest<TResult>(
   connection: PairedRuntimeConnection,

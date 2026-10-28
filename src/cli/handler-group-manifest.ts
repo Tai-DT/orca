@@ -255,6 +255,11 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('./handlers/environment.js')).ENVIRONMENT_HANDLERS
   },
   {
+    name: 'devices',
+    keys: ['devices discover', 'devices add'],
+    load: async () => (await import('./handlers/devices.js')).DEVICES_HANDLERS
+  },
+  {
     name: 'managed-server',
     keys: [
       'environment status',

@@ -76,6 +76,7 @@ describe('orca cli worktree awareness', () => {
       noPairing: true,
       mobilePairing: false,
       grantDesktopControl: false,
+      advertise: false,
       recipeJson: false,
       projectRoot: null
     })
@@ -110,6 +111,30 @@ describe('orca cli worktree awareness', () => {
     }
   )
 
+  it('forwards LAN advertisement opt-ins to the serve launch', async () => {
+    serveOrcaAppMock.mockResolvedValue(0)
+
+    await main(['serve', '--advertise'], '/tmp/repo')
+    expect(serveOrcaAppMock).toHaveBeenLastCalledWith(expect.objectContaining({ advertise: true }))
+    expect(serveOrcaAppMock.mock.lastCall?.[0]).not.toHaveProperty('advertisePair')
+
+    serveOrcaAppMock.mockClear()
+    await main(['serve', '--advertise-pair'], '/tmp/repo')
+    expect(serveOrcaAppMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ advertise: true, advertisePair: true })
+    )
+  })
+
+  it('rejects --advertise-pair with --no-pairing before starting anything', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await main(['serve', '--advertise-pair', '--no-pairing'], '/tmp/repo')
+
+    expect(serveOrcaAppMock).not.toHaveBeenCalled()
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('--advertise-pair'))
+    expect(process.exitCode).toBe(1)
+  })
+
   it('forwards the pairing-time desktop-control grant', async () => {
     serveOrcaAppMock.mockResolvedValue(0)
 
@@ -135,6 +160,7 @@ describe('orca cli worktree awareness', () => {
       noPairing: false,
       mobilePairing: true,
       grantDesktopControl: false,
+      advertise: false,
       recipeJson: false,
       projectRoot: null
     })
@@ -162,6 +188,7 @@ describe('orca cli worktree awareness', () => {
       noPairing: false,
       mobilePairing: false,
       grantDesktopControl: false,
+      advertise: false,
       recipeJson: true,
       projectRoot: '/workspace/repo'
     })

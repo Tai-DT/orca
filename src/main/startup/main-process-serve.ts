@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { notifyServeSupervisorReady } from '../serve-update-handoff'
 import { clearServeAbortPark } from '../../shared/serve-abort-park'
 import { findBundledWebClientRoot } from '../../shared/bundled-web-client-root'
+import { startServeLanAdvertiser } from '../server/serve-lan-advertiser'
 import { buildServePairingReadiness, servePublishMode } from '../server/serve-pairing-readiness'
 import { mainProcessState as state } from './main-process-state'
 import { getServeOptions, type ServeOptions } from './serve-options'
@@ -20,15 +21,23 @@ export async function printServeReady(options: ServeOptions): Promise<void> {
   }
   // Validate project root before pairing publication can persist a pending device.
   const output = servePublishMode(options)
-  await state.serveReadinessPublisher.publish(
-    {
-      runtimeId: runtime.getRuntimeId(),
-      ...(await buildServePairingReadiness(options, runtimeRpc)),
-      // WSL barrier fails open; pending warns clients PTY launch may still race repair.
-      managedWslCliReconciliation: state.managedWslCliReconciliationStatus
-    },
-    output
-  )
+  const readiness = {
+    runtimeId: runtime.getRuntimeId(),
+    ...(await buildServePairingReadiness(options, runtimeRpc)),
+    // WSL barrier fails open; pending warns clients PTY launch may still race repair.
+    managedWslCliReconciliation: state.managedWslCliReconciliationStatus
+  }
+  await state.serveReadinessPublisher.publish(readiness, output)
+  const lanAdvertiser = await startServeLanAdvertiser({
+    advertise: options.advertise,
+    advertisePair: options.advertisePair,
+    readiness,
+    version: app.getVersion(),
+    grantDesktopControl: options.grantDesktopControl
+  })
+  if (lanAdvertiser) {
+    app.once('will-quit', lanAdvertiser.stop)
+  }
   notifyServeSupervisorReady(runtime.getRuntimeId())
   // Successful readiness disproves the previous serve-abort park.
   clearServeAbortPark(app.getPath('userData'))

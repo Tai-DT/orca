@@ -22,6 +22,11 @@ Options:
   --mobile-pairing         Create a mobile-scoped pairing offer with a QR code.
   --grant-desktop-control  Allow desktop control in the default runtime offer;
                            cannot combine with --no-pairing or --mobile-pairing.
+  --advertise              Publish this node on the LAN via mDNS (_orca-node._tcp)
+                           so 'orca devices discover' can find it.
+  --advertise-pair         Also broadcast the runtime pairing offer; anyone on
+                           the LAN can pair. Use only on trusted networks.
+                           Implies --advertise.
   --recipe-json            Print only the VM recipe line; requires --project-root.
   --project-root <dir>     Existing absolute project directory for --recipe-json.
   --web-client-root <dir>  Serve the browser client from this directory (holds web-index.html).
@@ -60,6 +65,11 @@ export function parseArgs(argv: string[]): OrcadCommandArguments {
       options.mobilePairing = true
     } else if (arg === '--grant-desktop-control') {
       options.grantDesktopControl = true
+    } else if (arg === '--advertise') {
+      options.advertise = true
+    } else if (arg === '--advertise-pair') {
+      options.advertise = true
+      options.advertisePair = true
     } else if (arg === '--recipe-json') {
       options.recipeJson = true
     } else if (arg === '--project-root') {
@@ -99,7 +109,9 @@ export function parseArgs(argv: string[]): OrcadCommandArguments {
     mobilePairing: options.mobilePairing === true,
     grantDesktopControl: options.grantDesktopControl,
     recipeJson: options.recipeJson === true,
-    projectRoot: options.projectRoot
+    projectRoot: options.projectRoot,
+    advertise: options.advertise,
+    advertisePair: options.advertisePair
   })
   if (validationError) {
     throw new Error(validationError)

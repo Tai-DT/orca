@@ -12,6 +12,10 @@ export type ServeOrcaAppArgs = {
   force?: boolean
   /** Restart the server under a service manager instead of exiting with it; never inferred. */
   supervise?: boolean
+  /** Publish this node on the LAN so other Orca installs can discover it. */
+  advertise?: boolean
+  /** Also broadcast the runtime pairing offer; anyone on the LAN can pair. */
+  advertisePair?: boolean
 }
 
 export function serveOptionArgs(args: ServeOrcaAppArgs, prefix: '--' | '--serve-'): string[] {
@@ -22,6 +26,8 @@ export function serveOptionArgs(args: ServeOrcaAppArgs, prefix: '--' | '--serve-
     ...(args.noPairing ? [`${prefix}no-pairing`] : []),
     ...(args.mobilePairing ? [`${prefix}mobile-pairing`] : []),
     ...(args.grantDesktopControl ? [`${prefix}grant-desktop-control`] : []),
+    ...(args.advertise || args.advertisePair ? [`${prefix}advertise`] : []),
+    ...(args.advertisePair ? [`${prefix}advertise-pair`] : []),
     ...(args.recipeJson && args.projectRoot
       ? [`${prefix}recipe-json`, `${prefix}project-root`, args.projectRoot]
       : [])

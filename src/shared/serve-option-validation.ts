@@ -6,11 +6,16 @@ export type ServeOptionValidationInput = {
   grantDesktopControl?: boolean
   recipeJson: boolean
   projectRoot: string | null | undefined
+  advertise?: boolean
+  advertisePair?: boolean
 }
 
 export function getServeOptionValidationError(options: ServeOptionValidationInput): string | null {
   if (options.noPairing && options.mobilePairing) {
     return 'Use either --mobile-pairing or --no-pairing, not both.'
+  }
+  if (options.advertisePair && (options.noPairing || options.mobilePairing)) {
+    return '--advertise-pair embeds the default runtime pairing offer; remove --no-pairing or --mobile-pairing.'
   }
   if (options.grantDesktopControl && (options.noPairing || options.mobilePairing)) {
     return '--grant-desktop-control applies only to the default runtime pairing offer.'
@@ -37,7 +42,11 @@ const SERVE_SECURITY_FLAG_NAMES = [
   '--recipe-json',
   '--serve-recipe-json',
   '--pairing-address',
-  '--serve-pairing-address'
+  '--serve-pairing-address',
+  '--advertise',
+  '--serve-advertise',
+  '--advertise-pair',
+  '--serve-advertise-pair'
 ] as const
 
 const SERVE_VALUE_FLAG_NAMES = new Set([

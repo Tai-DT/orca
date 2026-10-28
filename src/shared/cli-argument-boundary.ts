@@ -3,6 +3,8 @@ export const CLI_GLOBAL_FLAGS: readonly string[] = ['help', 'json', ...CLI_GLOBA
 
 export const CLI_BOOLEAN_FLAGS = new Set([
   'accept-changed-state',
+  'advertise',
+  'advertise-pair',
   'all',
   'allow-failed-archive-hook',
   'attachments',

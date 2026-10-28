@@ -9,6 +9,7 @@ import { PROJECT_COMMAND_SPECS } from './project'
 import { ORCHESTRATION_COMMAND_SPECS } from './orchestration'
 import { COMPUTER_COMMAND_SPECS } from './computer'
 import { ENVIRONMENT_COMMAND_SPECS } from './environment'
+import { DEVICES_COMMAND_SPECS } from './devices'
 import { MANAGED_SERVER_COMMAND_SPECS } from './managed-server'
 import { AGENT_HOOK_COMMAND_SPECS } from './agent-hooks'
 import { AGENT_LAUNCH_COMMAND_SPECS } from './agent-launch'
@@ -48,6 +49,7 @@ export const COMMAND_SPECS: CommandSpec[] = [
   ...TERMINAL_DAEMON_COMMAND_SPECS,
   ...INTROSPECTION_COMMAND_SPECS,
   ...ENVIRONMENT_COMMAND_SPECS,
+  ...DEVICES_COMMAND_SPECS,
   ...MANAGED_SERVER_COMMAND_SPECS,
   ...JIRA_COMMAND_SPECS,
   ...LINEAR_COMMAND_SPECS,

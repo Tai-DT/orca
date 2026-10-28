@@ -13,6 +13,8 @@ describe('getServeOptions', () => {
       noPairing: true,
       mobilePairing: false,
       grantDesktopControl: false,
+      advertise: false,
+      advertisePair: false,
       recipeJson: false,
       projectRoot: null
     })
@@ -144,9 +146,28 @@ describe('getServeOptions', () => {
       noPairing: false,
       mobilePairing: false,
       grantDesktopControl: false,
+      advertise: false,
+      advertisePair: false,
       recipeJson: false,
       projectRoot: null
     })
+  })
+
+  it('parses LAN advertisement flags', () => {
+    expect(getServeOptions(['/AppRun', '--serve', '--serve-advertise'])).toMatchObject({
+      advertise: true,
+      advertisePair: false
+    })
+    expect(getServeOptions(['/AppRun', '--serve', '--serve-advertise-pair'])).toMatchObject({
+      advertise: true,
+      advertisePair: true
+    })
+  })
+
+  it('rejects --serve-advertise-pair combined with --serve-no-pairing', () => {
+    expect(() =>
+      getServeOptions(['/AppRun', '--serve', '--serve-advertise-pair', '--serve-no-pairing'])
+    ).toThrow(/advertise-pair/)
   })
 
   it('requires a port value', () => {

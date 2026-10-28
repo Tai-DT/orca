@@ -110,6 +110,8 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
     const noPairing = flags.get('no-pairing') === true
     const mobilePairing = flags.get('mobile-pairing') === true
     const grantDesktopControl = flags.get('grant-desktop-control') === true
+    const advertisePair = flags.get('advertise-pair') === true
+    const advertise = advertisePair || flags.get('advertise') === true
     const recipeJson = flags.get('recipe-json') === true
     const force = flags.get('force') === true
     const supervise = flags.get('supervise') === true
@@ -122,7 +124,9 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
       mobilePairing,
       grantDesktopControl,
       recipeJson,
-      projectRoot
+      projectRoot,
+      advertise,
+      advertisePair
     })
     if (validationError) {
       throw new RuntimeClientError('invalid_argument', validationError)
@@ -136,6 +140,8 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
       noPairing,
       mobilePairing,
       grantDesktopControl,
+      advertise,
+      ...(advertisePair ? { advertisePair } : {}),
       recipeJson,
       projectRoot,
       ...(force ? { force: true } : {}),
