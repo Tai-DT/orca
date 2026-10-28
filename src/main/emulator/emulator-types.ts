@@ -1,4 +1,4 @@
-export type EmulatorBackendKind = 'ios' | 'android'
+export type EmulatorBackendKind = 'ios' | 'ios-device' | 'android'
 
 export type EmulatorStreamCodec = 'mjpeg' | 'h264'
 

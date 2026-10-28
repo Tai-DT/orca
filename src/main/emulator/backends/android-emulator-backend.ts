@@ -276,7 +276,7 @@ export class AndroidEmulatorBackend implements EmulatorBackend {
 
   async logcat(
     deviceId: string,
-    options?: { lines?: number; filters?: readonly string[] }
+    options?: { lines?: number; filters?: readonly string[]; buffers?: readonly string[] }
   ): Promise<unknown> {
     return this.withSerial(deviceId, (sdk, serial) =>
       captureAndroidLogcat(this.runner, sdk, serial, options)

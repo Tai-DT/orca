@@ -10,7 +10,11 @@ import { setConfiguredAndroidSdkPath } from '../emulator/android/android-sdk-hos
 import type { EmulatorGesturePoint } from '../emulator/emulator-gesture-sender'
 import type { EmulatorSessionInfo } from '../emulator/emulator-types'
 import type { SimulatorDevice } from '../emulator/simctl-simulator-devices'
-import type { EmulatorDevice } from '../emulator/backends/emulator-backend'
+import type {
+  EmulatorBackend,
+  EmulatorBackendCapabilities,
+  EmulatorDevice
+} from '../emulator/backends/emulator-backend'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 
 type EmulatorHostSettings = Pick<
@@ -43,63 +47,58 @@ export class RuntimeEmulatorCommands {
   // RPC must serialize result; undefined would omit it and fail CLI schema validation.
   private static readonly OK = { ok: true as const }
 
-  async emulatorTap(
-    params: EmulatorTargetParams & { x: number; y: number }
-  ): Promise<{ ok: true }> {
-    const bridge = this.requireEmulatorBridge()
+  private async capability<T>(
+    name: keyof EmulatorBackendCapabilities,
+    params: EmulatorTargetParams,
+    run: (backend: EmulatorBackend, device: string) => Promise<T>
+  ): Promise<T> {
     const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await bridge.tap(params.x, params.y, { device: params.device ?? params.emulator, worktreeId })
-    return RuntimeEmulatorCommands.OK
+    return this.requireEmulatorBridge().runCapability(
+      name,
+      { device: params.device ?? params.emulator, worktreeId },
+      run
+    )
   }
 
-  async emulatorGesture(params: {
-    points: EmulatorGesturePoint[]
-    device?: string
-    emulator?: string
-    worktree?: string
-  }): Promise<{ ok: true }> {
-    const bridge = this.requireEmulatorBridge()
+  private async withBridge<T>(
+    params: EmulatorTargetParams,
+    run: (bridge: EmulatorBridge, target: { device?: string; worktreeId?: string }) => Promise<T>
+  ): Promise<T> {
     const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await bridge.gesture(params.points, { device: params.device ?? params.emulator, worktreeId })
-    return RuntimeEmulatorCommands.OK
-  }
-
-  async emulatorType(params: {
-    text: string
-    device?: string
-    emulator?: string
-    worktree?: string
-  }): Promise<{ ok: true }> {
-    const bridge = this.requireEmulatorBridge()
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await bridge.type(params.text, { device: params.device ?? params.emulator, worktreeId })
-    return RuntimeEmulatorCommands.OK
-  }
-
-  async emulatorButton(params: {
-    name: string
-    device?: string
-    emulator?: string
-    worktree?: string
-  }): Promise<{ ok: true }> {
-    const bridge = this.requireEmulatorBridge()
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await bridge.button(params.name, { device: params.device ?? params.emulator, worktreeId })
-    return RuntimeEmulatorCommands.OK
-  }
-
-  async emulatorRotate(params: {
-    orientation: string
-    device?: string
-    emulator?: string
-    worktree?: string
-  }): Promise<{ ok: true }> {
-    const bridge = this.requireEmulatorBridge()
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await bridge.rotate(params.orientation, {
+    return run(this.requireEmulatorBridge(), {
       device: params.device ?? params.emulator,
       worktreeId
     })
+  }
+
+  async emulatorTap(
+    params: EmulatorTargetParams & { x: number; y: number }
+  ): Promise<{ ok: true }> {
+    await this.withBridge(params, (bridge, target) => bridge.tap(params.x, params.y, target))
+    return RuntimeEmulatorCommands.OK
+  }
+
+  async emulatorGesture(
+    params: EmulatorTargetParams & { points: EmulatorGesturePoint[] }
+  ): Promise<{ ok: true }> {
+    await this.withBridge(params, (bridge, target) => bridge.gesture(params.points, target))
+    return RuntimeEmulatorCommands.OK
+  }
+
+  async emulatorType(params: EmulatorTargetParams & { text: string }): Promise<{ ok: true }> {
+    await this.withBridge(params, (bridge, target) => bridge.type(params.text, target))
+    return RuntimeEmulatorCommands.OK
+  }
+
+  async emulatorButton(params: EmulatorTargetParams & { name: string }): Promise<{ ok: true }> {
+    await this.withBridge(params, (bridge, target) => bridge.button(params.name, target))
+    return RuntimeEmulatorCommands.OK
+  }
+
+  async emulatorRotate(
+    params: EmulatorTargetParams & { orientation: string }
+  ): Promise<{ ok: true }> {
+    await this.withBridge(params, (bridge, target) => bridge.rotate(params.orientation, target))
     return RuntimeEmulatorCommands.OK
   }
 
@@ -225,11 +224,8 @@ export class RuntimeEmulatorCommands {
   async emulatorInstall(
     params: EmulatorTargetParams & { path: string; reinstall?: boolean }
   ): Promise<{ ok: true }> {
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await this.requireEmulatorBridge().runCapability(
-      'install',
-      { device: params.device ?? params.emulator, worktreeId },
-      (backend, device) => backend.installApp!(device, params.path, { reinstall: params.reinstall })
+    await this.capability('install', params, (backend, device) =>
+      backend.installApp!(device, params.path, { reinstall: params.reinstall })
     )
     return RuntimeEmulatorCommands.OK
   }
@@ -237,11 +233,8 @@ export class RuntimeEmulatorCommands {
   async emulatorLaunch(
     params: EmulatorTargetParams & { package: string; activity?: string }
   ): Promise<{ ok: true }> {
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await this.requireEmulatorBridge().runCapability(
-      'launch',
-      { device: params.device ?? params.emulator, worktreeId },
-      (backend, device) => backend.launchApp!(device, params.package, params.activity)
+    await this.capability('launch', params, (backend, device) =>
+      backend.launchApp!(device, params.package, params.activity)
     )
     return RuntimeEmulatorCommands.OK
   }
@@ -253,32 +246,27 @@ export class RuntimeEmulatorCommands {
       permission?: string
     }
   ): Promise<{ ok: true }> {
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    await this.requireEmulatorBridge().runCapability(
-      'permissions',
-      { device: params.device ?? params.emulator, worktreeId },
-      (backend, device) =>
-        backend.setPermission!(device, params.op, params.package ?? '', params.permission)
+    await this.capability('permissions', params, (backend, device) =>
+      backend.setPermission!(device, params.op, params.package ?? '', params.permission)
     )
     return RuntimeEmulatorCommands.OK
   }
 
   async emulatorAx(params: EmulatorTargetParams): Promise<unknown> {
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    return this.requireEmulatorBridge().accessibilityTree({
-      device: params.device ?? params.emulator,
-      worktreeId
-    })
+    return this.withBridge(params, (bridge, target) => bridge.accessibilityTree(target))
   }
 
   async emulatorLogcat(
-    params: EmulatorTargetParams & { lines?: number; filters?: string[] }
+    params: EmulatorTargetParams & {
+      lines?: number
+      filters?: string[]
+      buffers?: string[]
+      durationMs?: number
+    }
   ): Promise<unknown> {
-    const worktreeId = await this.resolveWorktreeId(params.worktree)
-    return this.requireEmulatorBridge().runCapability(
-      'logcat',
-      { device: params.device ?? params.emulator, worktreeId },
-      (backend, device) => backend.logcat!(device, { lines: params.lines, filters: params.filters })
+    const { lines, filters, buffers, durationMs } = params
+    return this.capability('logcat', params, (backend, device) =>
+      backend.logcat!(device, { lines, filters, buffers, durationMs })
     )
   }
 

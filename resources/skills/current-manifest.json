@@ -68,16 +68,16 @@
     {
       "name": "orca-emulator",
       "sourcePath": "skills/orca-emulator",
-      "packageDigest": "1dc42e5addc613abd85eba639d4ac36d9c7b3bc6f7186f0a2d54d10dae3f06d3",
+      "packageDigest": "3f43b52193b709d0f79dcedc0e55af3c123fbfa076600775cccb68d1726c9e34",
       "files": [
         {
           "path": "SKILL.md",
-          "size": 2337,
+          "size": 2460,
           "executable": false,
           "classification": "text",
-          "exactSha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-          "textNormalizedSha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-          "identitySha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48"
+          "exactSha256": "59b83693a2cc5b5a297daec92837f225177a44d5f7b298c1af6a5248a0c8ad67",
+          "textNormalizedSha256": "59b83693a2cc5b5a297daec92837f225177a44d5f7b298c1af6a5248a0c8ad67",
+          "identitySha256": "59b83693a2cc5b5a297daec92837f225177a44d5f7b298c1af6a5248a0c8ad67"
         }
       ]
     },

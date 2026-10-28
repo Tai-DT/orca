@@ -80,14 +80,14 @@ export const EMULATOR_COMMAND_SPECS: CommandSpec[] = [
   },
   {
     path: ['emulator', 'install'],
-    summary: 'Install an APK onto the target Android device',
-    usage: 'orca emulator install <apkPath> [--reinstall] [--device <id>] [--json]',
+    summary: 'Install an APK (Android) or signed .ipa (physical iOS device)',
+    usage: 'orca emulator install <apkOrIpaPath> [--reinstall] [--device <id>] [--json]',
     allowedFlags: [...GLOBAL_FLAGS, 'device', 'emulator', 'worktree', 'path', 'reinstall'],
     positionalArgs: ['path']
   },
   {
     path: ['emulator', 'launch'],
-    summary: 'Launch an Android app by package (and optional activity)',
+    summary: 'Launch an app by package (Android, optional activity) or bundle id (iOS device)',
     usage: 'orca emulator launch <package> [--activity <name>] [--device <id>] [--json]',
     allowedFlags: [...GLOBAL_FLAGS, 'device', 'emulator', 'worktree', 'package', 'activity'],
     positionalArgs: ['package']
@@ -116,8 +116,19 @@ export const EMULATOR_COMMAND_SPECS: CommandSpec[] = [
   },
   {
     path: ['emulator', 'logcat'],
-    summary: 'Capture a one-shot logcat dump from the Android device',
-    usage: 'orca emulator logcat [--lines <n>] [--device <id>] [--worktree <selector>] [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'device', 'emulator', 'worktree', 'lines']
+    summary:
+      'Capture device logs (Android logcat dump; iOS device syslog window or "crashlogs" via exec)',
+    usage:
+      'orca emulator logcat [--lines <n>] [--buffer <name>] [--filter <text>] [--duration <ms>] [--device <id>] [--worktree <selector>] [--json]',
+    allowedFlags: [
+      ...GLOBAL_FLAGS,
+      'device',
+      'emulator',
+      'worktree',
+      'lines',
+      'buffer',
+      'filter',
+      'duration'
+    ]
   }
 ]

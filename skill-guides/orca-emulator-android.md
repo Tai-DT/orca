@@ -24,8 +24,9 @@ Android Studio installs, so it runs on Windows, Linux, and macOS. Input uses
 `ORCA emulator exec --command "<adb shell command>"`, which runs
 `adb -s <serial> shell <command>` with the string unvalidated.
 
-`install`, `launch`, `permissions`, and `logcat` are Android-only and fail against an iOS
-device with `emulator_unsupported`. `tap`, `type`, `gesture`, `button`, `rotate`, `ax`, and
+`install`, `launch`, `permissions`, and `logcat` fail against an iOS simulator with
+`emulator_unsupported`; physical iOS devices support `install`, `launch`, and `logcat`
+(syslog) but not `permissions`. `tap`, `type`, `gesture`, `button`, `rotate`, `ax`, and
 `exec` work on both backends, with backend-specific output for `ax` — a `uiautomator` node
 tree on Android, a serve-sim node tree on iOS.
 

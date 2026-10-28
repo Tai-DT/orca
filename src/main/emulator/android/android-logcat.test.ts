@@ -47,6 +47,25 @@ describe('logcatArgs', () => {
     ])
   })
 
+  it('selects buffers with -b before the tail and filters', () => {
+    expect(
+      logcatArgs('emulator-5554', { buffers: ['crash', 'main'], lines: 20, filters: ['*:W'] })
+    ).toEqual([
+      '-s',
+      'emulator-5554',
+      'logcat',
+      '-v',
+      'threadtime',
+      '-b',
+      'crash',
+      '-b',
+      'main',
+      '-t',
+      '20',
+      '*:W'
+    ])
+  })
+
   it('combines dump, lines, and filters in order', () => {
     expect(
       logcatArgs('emulator-5554', { dump: true, lines: 50, filters: ['MyTag:D', '*:S'] })

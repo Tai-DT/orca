@@ -1,14 +1,9 @@
 import type { CommandHandler } from '../dispatch'
-import { formatLogcat } from '../emulator-logcat-format'
+import { EMULATOR_LOGCAT_HANDLERS } from './emulator-logcat'
 import { parseEmulatorPermissionRequest } from '../emulator-permissions-args'
 import { printResult } from '../format'
 import { resolveRepoPathArgument } from '../repo-path-arguments'
-import {
-  getOptionalPositiveIntegerFlag,
-  getOptionalStringFlag,
-  getRequiredFiniteNumber,
-  getRequiredStringFlag
-} from '../flags'
+import { getOptionalStringFlag, getRequiredFiniteNumber, getRequiredStringFlag } from '../flags'
 import { getEmulatorCommandTarget } from '../selectors'
 import { RuntimeClientError } from '../runtime-client'
 
@@ -35,7 +30,7 @@ type EmulatorGesturePoint = {
 }
 
 type EmulatorDeviceRow = {
-  backend?: 'ios' | 'android'
+  backend?: 'ios' | 'ios-device' | 'android'
   id?: string
   name?: string
   state?: string
@@ -48,7 +43,12 @@ function formatEmulatorDevices(value: unknown): string {
   }
   return devices
     .map((device) => {
-      const platform = device.backend === 'android' ? 'Android' : 'iOS'
+      const platform =
+        device.backend === 'android'
+          ? 'Android'
+          : device.backend === 'ios-device'
+            ? 'iOS dev'
+            : 'iOS'
       return `${platform.padEnd(8)} ${(device.state ?? '').padEnd(9)} ${device.name ?? ''}  (${device.id ?? ''})`
     })
     .join('\n')
@@ -289,14 +289,5 @@ export const EMULATOR_HANDLERS: Record<string, CommandHandler> = {
     })
     printResult(res, json, (r) => JSON.stringify(r, null, 2))
   },
-  'emulator logcat': async ({ flags, client, cwd, json }) => {
-    const target = await getEmulatorCommandTarget(flags, cwd, client)
-    const res = await client.call('emulator.logcat', {
-      lines: getOptionalPositiveIntegerFlag(flags, 'lines'),
-      device: target.device,
-      emulator: target.emulator,
-      worktree: target.worktree
-    })
-    printResult(res, json, formatLogcat)
-  }
+  ...EMULATOR_LOGCAT_HANDLERS
 }

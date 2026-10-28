@@ -80,6 +80,11 @@ export type EmulatorBackend = {
   accessibilityTree?(deviceId: string, axUrl?: string): Promise<unknown>
   logcat?(
     deviceId: string,
-    options?: { lines?: number; filters?: readonly string[] }
+    options?: {
+      lines?: number
+      filters?: readonly string[]
+      buffers?: readonly string[]
+      durationMs?: number
+    }
   ): Promise<unknown>
 }

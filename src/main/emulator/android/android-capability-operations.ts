@@ -26,6 +26,8 @@ export async function installAndroidApk(
   }
 }
 
+const ANDROID_LAUNCH_ERROR_LINE = /error|exception|no activities|aborted|unable|does not exist/i
+
 export async function launchAndroidApp(
   runner: AndroidCommandRunner,
   sdk: AndroidSdkPaths,
@@ -33,7 +35,26 @@ export async function launchAndroidApp(
   packageName: string,
   activity?: string
 ): Promise<void> {
-  ensureAdbOk(await runner(sdk.adb, launchAppArgs(serial, packageName, activity)), 'adb launch')
+  const result = await runner(sdk.adb, launchAppArgs(serial, packageName, activity))
+  if (result.code === 0) {
+    // `am start` and `monkey` report launch failures on stdout with a zero exit.
+    const failure = `${result.stdout}\n${result.stderr}`
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => ANDROID_LAUNCH_ERROR_LINE.test(line))
+    if (!failure) {
+      return
+    }
+    throw new EmulatorError('emulator_error', `adb launch failed: ${failure}`)
+  }
+  const failureLine = `${result.stderr}\n${result.stdout}`
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => ANDROID_LAUNCH_ERROR_LINE.test(line))
+  throw new EmulatorError(
+    'emulator_error',
+    `adb launch failed: ${failureLine ?? ((result.stderr || result.stdout).trim() || 'unknown error')}`
+  )
 }
 
 export async function setAndroidPermission(
@@ -71,7 +92,7 @@ export async function captureAndroidLogcat(
   runner: AndroidCommandRunner,
   sdk: AndroidSdkPaths,
   serial: string,
-  options?: { lines?: number; filters?: readonly string[] }
+  options?: { lines?: number; filters?: readonly string[]; buffers?: readonly string[] }
 ): Promise<LogcatEntry[]> {
   // RPC reads need a one-shot dump; follow mode requires streaming.
   const result = ensureAdbOk(

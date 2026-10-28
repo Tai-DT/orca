@@ -1,13 +1,21 @@
 // Filters must follow all logcat options; threadtime matches the line parser below.
 export function logcatArgs(
   serial: string,
-  options?: { dump?: boolean; lines?: number; filters?: readonly string[] }
+  options?: {
+    dump?: boolean
+    lines?: number
+    filters?: readonly string[]
+    buffers?: readonly string[]
+  }
 ): string[] {
   const args = ['-s', serial, 'logcat']
   if (options?.dump) {
     args.push('-d')
   }
   args.push('-v', 'threadtime')
+  for (const buffer of options?.buffers ?? []) {
+    args.push('-b', buffer)
+  }
   if (options?.lines !== undefined) {
     args.push('-t', String(options.lines))
   }

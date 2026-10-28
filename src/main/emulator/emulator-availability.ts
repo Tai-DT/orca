@@ -66,12 +66,12 @@ async function inspectIosAvailability(bridge: EmulatorBridge): Promise<IosAvaila
   return { available: simctl.ok && serveSim.ok && devices.length > 0, devices, simctl, serveSim }
 }
 
-function toSimulatorRow(device: EmulatorDevice): SimulatorDevice {
+function toSimulatorRow(device: EmulatorDevice, runtime: string): SimulatorDevice {
   return {
     name: device.name,
     udid: device.id,
     state: device.state === 'booted' ? 'Booted' : 'Shutdown',
-    runtime: 'Android',
+    runtime,
     isAvailable: device.isAvailable
   }
 }
@@ -82,23 +82,33 @@ export async function inspectEmulatorAvailability(
   const currentPlatform = platform()
   const backends = bridge.listBackends()
   const iosBackend = backends.find((backend) => backend.kind === 'ios')
+  const iosDeviceBackend = backends.find((backend) => backend.kind === 'ios-device')
   const androidBackend = backends.find((backend) => backend.kind === 'android')
 
   const ios: IosAvailability = iosBackend?.isSupportedOnHost()
     ? await inspectIosAvailability(bridge)
     : { available: false, devices: [], simctl: { ok: false }, serveSim: { ok: false } }
 
+  const iosDevice: BackendAvailability = iosDeviceBackend?.isSupportedOnHost()
+    ? await iosDeviceBackend.checkAvailability()
+    : { available: false, devices: [], message: '' }
+
   const android: BackendAvailability = androidBackend
     ? await androidBackend.checkAvailability()
     : { available: false, devices: [], message: '' }
 
-  const devices = [...ios.devices, ...android.devices.map(toSimulatorRow)]
-  const available = ios.available || android.available
+  const devices = [
+    ...ios.devices,
+    ...iosDevice.devices.map((device) => toSimulatorRow(device, 'iOS device')),
+    ...android.devices.map((device) => toSimulatorRow(device, 'Android'))
+  ]
+  const available = ios.available || iosDevice.available || android.available
   // Outside macOS, report Android setup rather than an irrelevant iOS host error.
   const message = available
     ? 'Ready'
     : currentPlatform === 'darwin'
       ? ios.simctl.message ||
+        iosDevice.message ||
         ios.serveSim.message ||
         android.message ||
         'Mobile Emulator is not available.'

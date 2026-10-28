@@ -12,6 +12,7 @@ import {
 import { listAvailableEmulatorDevices } from './emulator-device-inventory'
 import { deriveAxUrlFromStreamUrl } from './serve-sim-detached-session'
 import { IosEmulatorBackend } from './backends/ios-emulator-backend'
+import { IosDeviceBackend } from './ios-device/ios-device-backend'
 import { AndroidEmulatorBackend } from './backends/android-emulator-backend'
 import type {
   EmulatorBackend,
@@ -26,13 +27,14 @@ export class EmulatorBridge {
   private readonly startLeases = new EmulatorStartLeaseRegistry()
   private readonly backends: EmulatorBackend[]
   private readonly iosBackend: IosEmulatorBackend
+  private readonly iosDeviceBackend = new IosDeviceBackend()
   private readonly androidBackend: AndroidEmulatorBackend
 
   constructor(options: EmulatorBridgeOptions = {}) {
     this.iosBackend = new IosEmulatorBackend(options)
     this.androidBackend = new AndroidEmulatorBackend()
     // Register all backends so explicit targets reach their own host-support errors.
-    this.backends = [this.iosBackend, this.androidBackend]
+    this.backends = [this.iosBackend, this.iosDeviceBackend, this.androidBackend]
   }
 
   listBackends(): EmulatorBackend[] {
@@ -47,13 +49,9 @@ export class EmulatorBridge {
     return this.iosBackend.listSimulators()
   }
 
-  async listRunningHelpers(): Promise<unknown> {
-    return this.iosBackend.listRunningHelpers()
-  }
+  listRunningHelpers = (): Promise<unknown> => this.iosBackend.listRunningHelpers()
 
-  async checkServeSimAvailable(): Promise<void> {
-    return this.iosBackend.checkServeSimAvailable()
-  }
+  checkServeSimAvailable = (): Promise<void> => this.iosBackend.checkServeSimAvailable()
 
   registerActiveEmulator(
     worktreeId: string,

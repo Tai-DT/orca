@@ -119,6 +119,8 @@ export const AxParams = z.object({
 export const LogcatParams = z.object({
   lines: z.number().int().positive().optional(),
   filters: z.array(z.string()).optional(),
+  buffers: z.array(z.string()).optional(),
+  durationMs: z.number().int().positive().optional(),
   device: z.string().optional(),
   emulator: z.string().optional(),
   worktree: z.string().optional()
